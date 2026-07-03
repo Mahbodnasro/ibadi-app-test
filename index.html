@@ -2829,18 +2829,31 @@ function buildIbadiTV() {
       sIframe.setAttribute('playsinline','');
       sIframe.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
       const _srcFor = (id) => _tvShortsUnmuted
-        ? `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&controls=1&rel=0&modestbranding=1`
-        : `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&playsinline=1&controls=1&rel=0&modestbranding=1`;
+        ? `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1`
+        : `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
       sIframe.src = _srcFor(shorts[_tvShortsIdx].id);
       sBox.appendChild(sIframe);
-      // Swipe overlay — top area only; bottom 44px left for YouTube controls
+      // Swipe overlay — top area only; bottom 60px left for YouTube's full control bar (progress + all buttons)
       const sSwipe = document.createElement('div');
-      sSwipe.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:44px;z-index:4;background:transparent;touch-action:none;';
+      sSwipe.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:60px;z-index:4;background:transparent;touch-action:none;';
       let _sy0 = 0, _sx0 = 0;
+      let _paused = false;
+      const _postYT = (cmd) => {
+        try { sIframe.contentWindow.postMessage(JSON.stringify({event:'command',func:cmd,args:''}), '*'); } catch(e) {}
+      };
       const _advance = (dy) => {
         if (dy < 0) _tvShortsIdx = (_tvShortsIdx + 1) % shorts.length;
         else _tvShortsIdx = (_tvShortsIdx - 1 + shorts.length) % shorts.length;
+        _paused = false;
         sIframe.src = _srcFor(shorts[_tvShortsIdx].id);
+      };
+      const _handleGesture = (dy, dx) => {
+        if (Math.abs(dy) >= 50 && Math.abs(dy) > Math.abs(dx)) { _advance(dy); return; }
+        if (Math.abs(dy) < 10 && Math.abs(dx) < 10) {
+          _tvShortsUnmuted = true;
+          if (_paused) { _postYT('playVideo'); _paused = false; }
+          else { _postYT('pauseVideo'); _paused = true; }
+        }
       };
       sSwipe.addEventListener('touchstart', (e) => {
         if (!e.touches.length) return;
@@ -2848,9 +2861,7 @@ function buildIbadiTV() {
       }, {passive:true});
       sSwipe.addEventListener('touchend', (e) => {
         const t = e.changedTouches[0]; if (!t) return;
-        const dy = t.clientY - _sy0; const dx = t.clientX - _sx0;
-        if (Math.abs(dy) < 50 || Math.abs(dy) < Math.abs(dx)) return;
-        _advance(dy);
+        _handleGesture(t.clientY - _sy0, t.clientX - _sx0);
       }, {passive:true});
       // Mouse fallback for laptop testing
       let _mDown = false, _my0 = 0, _mx0 = 0;
@@ -2858,24 +2869,9 @@ function buildIbadiTV() {
       sSwipe.addEventListener('mouseleave', () => { _mDown = false; });
       sSwipe.addEventListener('mouseup', (e) => {
         if (!_mDown) return; _mDown = false;
-        const dy = e.clientY - _my0; const dx = e.clientX - _mx0;
-        if (Math.abs(dy) < 50 || Math.abs(dy) < Math.abs(dx)) return;
-        _advance(dy);
+        _handleGesture(e.clientY - _my0, e.clientX - _mx0);
       });
       sBox.appendChild(sSwipe);
-      // TAP TO UNMUTE pill — first-time only
-      if (!_tvShortsUnmuted) {
-        const sHint = document.createElement('div');
-        sHint.style.cssText = "position:absolute;top:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.72);color:#fff;padding:7px 16px;border-radius:16px;font-family:'Josefin Sans',sans-serif;font-size:11px;letter-spacing:1px;font-weight:600;z-index:5;cursor:pointer;";
-        sHint.textContent = 'TAP TO UNMUTE';
-        sHint.onclick = (e) => {
-          e.stopPropagation();
-          _tvShortsUnmuted = true;
-          sIframe.src = _srcFor(shorts[_tvShortsIdx].id);
-          sHint.style.display = 'none';
-        };
-        sBox.appendChild(sHint);
-      }
       sWrap.appendChild(sBox);
       screen.appendChild(sWrap);
       return;
