@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>EveryAyah cross-origin audio test</title></head>
+<body style="font-family:system-ui;padding:20px;max-width:600px">
+<h2>EveryAyah cross-origin audio test</h2>
+<p>URL under test:<br><code id="url">https://everyayah.com/data/Alafasy_128kbps/001001.mp3</code></p>
+
+<audio id="a" controls preload="metadata"
+  src="https://everyayah.com/data/Alafasy_128kbps/001001.mp3"></audio>
+
+<p><button onclick="document.getElementById('a').play()">Play via JavaScript</button></p>
+
+<h3>Status</h3>
+<pre id="log" style="background:#f4f4f4;padding:12px;white-space:pre-wrap"></pre>
+
+<script>
+const a = document.getElementById('a');
+const log = document.getElementById('log');
+const say = (m) => log.textContent += m + '\n';
+say('Origin: ' + location.origin);
+say('Protocol: ' + location.protocol);
+a.addEventListener('loadedmetadata', () => say('✓ loadedmetadata — duration: ' + a.duration.toFixed(2) + 's'));
+a.addEventListener('canplay',       () => say('✓ canplay — mp3 is decodable in this browser'));
+a.addEventListener('playing',       () => say('✓ PLAYING — audio is producing sound now'));
+a.addEventListener('error',         () => say('✗ ERROR — code=' + (a.error?.code) + ' message=' + (a.error?.message||'(none)')));
+a.addEventListener('stalled',       () => say('⚠ stalled — waiting for data'));
+a.addEventListener('suspend',       () => say('· suspend'));
+</script>
+</body>
+</html>
